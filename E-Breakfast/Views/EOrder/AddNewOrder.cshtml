@@ -1,0 +1,154 @@
+﻿
+<section class="banner">
+    <h1>Bữa sáng ngon, khởi đầu ngày mới tràn đầy năng lượng!</h1>
+    <p>Thực đơn đa dạng, tươi ngon và giàu dinh dưỡng.</p>
+    <button class="btn btn-danger" id="orde_now">Đặt hàng ngay</button>
+</section>
+
+<div class="form-horizontal" style="padding:10px;">
+    <div class="form-group form-group-sm row">
+        <div class="col-md-6">
+            <div id="name"></div>
+        </div>
+        <div class="col-md-6">
+            <div id="phone"></div>
+        </div>
+    </div>
+    <div class="row form-group form-group-sm">
+        <div class="col-md-12">
+            <div id="address"></div>
+        </div>
+    </div>
+    <div class="row form-group form-group-sm">
+        <div class="col-md-6">
+            <div id="menu"></div>
+        </div>
+        <div class="col-md-2">
+            <div id="quantity"></div>
+        </div>
+        <div class="col-md-2">
+            <div id="price"></div>
+        </div>
+        <div class="col-md-2">
+            <div id="totalprice"></div>
+        </div>
+    </div>
+    <div class="row form-group form-group-sm">
+        <div class="col-md-12">
+            <div id="note"></div>
+        </div>
+    </div>
+    <div class="row form-group form-group-sm">
+        <div class="col-12">
+            <button type="button" style="float: right;margin-top: 5px;" id="send_order" class="btn btn-success">Đặt hàng</button>
+        </div>
+    </div>
+</div>
+<script>
+    const lst_menu = [{"code":"Egg","name":"Trứng thường","price":4000},{"code":"Balut","name":"Trứng vịt lộn","price":7000},{"code":"Corn","name":"Bắp","price":7000},{"code":"Potato","name":"Khoai lang","price":7000}]
+    $(function () {
+        inIt.gen_control();
+    });
+    $(document).ready(function () {
+        var botToken = "6748137268:AAFipIR5uX7T954HfNPuH47Gq2hvv74HP0k";  // Thay bằng Bot Token
+        var chatId = "6184705478";  // Thay bằng Chat ID
+        $("#send_order").click(function () {func.push_telegram(botToken,chatId)});
+        $("#orde_now").click(function() {
+            $("html, body").animate({ scrollTop: $(document).height() }, "slow");
+        });
+    });
+    let inIt = {
+        gen_control : async () =>
+        {
+            $("#name").dxTextBox({  label: 'Họ và tên',stylingMode: 'outlined',labelMode: 'static'});
+            $("#phone").dxTextBox({  label: 'Số điện thoại',stylingMode: 'outlined',labelMode: 'static'});
+            $("#address").dxTextBox({  label: 'Địa chỉ',value : "35 mạc thái tổ",stylingMode: 'outlined',labelMode: 'static'});
+            $("#menu").dxSelectBox({
+                dataSource : lst_menu,
+                displayExpr: "name",
+                valueExpr: "code",
+                placeholder: "Chọn món...",
+                label: 'Chọn món',
+                searchEnabled: true,
+                searchMode: "contains",
+                searchExpr: ["code", "name"],
+                onValueChanged: function (e) {
+                    let obj_menu = lst_menu.find(c => c.code === e.value);
+                    var qty = $("#quantity").dxNumberBox("instance").option("value");
+                    $("#price").dxNumberBox("instance").option("value",obj_menu.price);
+                    $("#totalprice").dxNumberBox("instance").option("value",qty*obj_menu.price);
+                }
+            });
+            $("#quantity").dxNumberBox({
+                value: 1,
+                min: 1,
+                max: 100,
+                label: 'Số lượng',
+                stylingMode: 'outlined',
+                labelMode: 'static',
+                format: "fixedPoint",
+                onValueChanged: function (e) {
+                    let price = $("#price").dxNumberBox("instance").option("value");
+                    var total_price = e.value * price;
+                    $("#totalprice").dxNumberBox("instance").option("value",total_price);
+                }
+            });
+
+            $("#price").dxNumberBox({
+                value: 0,
+                label: 'Giá',
+                readOnly:true,
+                stylingMode: 'outlined',
+                labelMode: 'static',
+                format: "fixedPoint"
+            });
+            $("#totalprice").dxNumberBox({
+                value: 0,
+                label: 'Thành tiền',
+                readOnly:true,
+                stylingMode: 'outlined',
+                labelMode: 'static',
+                format: "fixedPoint"
+            });
+
+            $("#note").dxTextArea({  label: 'Ghi chú',height: 90,stylingMode: 'outlined',labelMode: 'static'});
+            $("#menu").dxSelectBox("instance").option("value","Egg");
+        }
+    }
+    let func = {
+        push_telegram : (botToken,chatId) =>
+            {
+                var name = $("#name").dxTextBox("instance").option("value");
+                if(name == null || name == "")
+                {
+                    DevExpress.ui.notify("Họ tên không được để trống!", "warning", 3000);
+                    return false;
+                }
+                var phone = $("#phone").dxTextBox("instance").option("value");
+                var address = $("#address").dxTextBox("instance").option("value");
+                var menu = $("#menu").dxSelectBox("instance").option("text");
+                var quantity = $("#quantity").dxNumberBox("instance").option("value");
+                var note = $("#note").dxTextArea("instance").option("value");
+
+                let str_order = `Tên: ${name}| SĐT: ${phone}| Địa chỉ: ${address}| Món: ${menu}| SL :${quantity}| Ghi chú: ${note}`
+
+                        $.ajax({
+                            url: `https://api.telegram.org/bot${botToken}/sendMessage`,
+                            method: "POST",
+                            data: {
+                                chat_id: chatId,
+                                text: str_order
+                            },
+                            success: function (response) {
+                                DevExpress.ui.notify("Đặt gạch thành công!", "success", 3000);
+                                return false;
+                            },
+                            error: function (error) {
+                                DevExpress.ui.notify("Đã có lỗi", "warning", 3000);
+                            }
+                        });
+            }
+    }
+
+
+</script>
